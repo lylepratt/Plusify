@@ -1,8 +1,6 @@
 <?php
 /* START INCLUDES */
-
 include('../includes/Mustache.php');
-
 /* END INCLUDES */
 
 
@@ -10,20 +8,21 @@ class Plusify {
 
 	/* START CONFIGURATION */
 	private $api_url = "https://www.googleapis.com/plus/v1";
-	private $api_key = "YOURAPIKEYHERE";
-	private $google_id = "YOURGOOGLEPLUSIDHERE";
+	private $api_key = "YOUR GOOGLE API KEY";
+	private $google_id = "YOUR GOOGLE + ID";
 	/* END CONFIGURATION */
 
 	private $SETTINGS = array();
 
 	function __construct() {
-       $this->SETTINGS['google_id'] = $this->google_id;
-       $this->SETTINGS['api_key'] = $this->api_key;
-       $this->SETTINGS['api_url'] = $this->api_url;
-       $this->SETTINGS['user_ip'] = $_SERVER['REMOTE_ADDR'];
+   		$this->SETTINGS['google_id'] = $this->google_id;
+   		$this->SETTINGS['api_key'] = $this->api_key;
+   		$this->SETTINGS['api_url'] = $this->api_url;
+   		$this->SETTINGS['user_ip'] = $_SERVER['REMOTE_ADDR'];
    	}
 
 	function doRequest($url) {
+
 		$ch = curl_init( $url . "?key={$this->SETTINGS['api_key']}&userIp={$this->SETTINGS['user_ip']}");
 
 		$options = array(
