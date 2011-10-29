@@ -3,22 +3,8 @@
 $plusify = new Plusify;
 $mustache = new Mustache;
 
-if(empty($_GET)) {
-
-	ob_start();
-	require_once('../theme/home.php');
-	$template = ob_get_contents();
-	ob_end_clean();
-
-	$activities = $plusify->getMyActivities();
-	$object['content'] = $activities;
-
-	echo $mustache->render($template, $object);
-
-}
 
 if(isset($_GET['activity'])) {
-
 	$activity_id = $_GET['activity'];
 
 	ob_start();
@@ -28,19 +14,35 @@ if(isset($_GET['activity'])) {
 
 	$activity = $plusify->getActivity($activity_id);
 	$comments = $plusify->getComments($activity_id);
-
-	$object['content'] = $activity;
-	$object['comments'] = $comments;
+	$object['content'] = $plusify->extractActivity($activity);
+	$object['comments'] = $plusify->extractComments($comments);
 
 	echo $mustache->render($template, $object);
 
 	//echo "<pre>";
+	//echo print_r($object);
 	//echo print_r($activity);
+	//echo print_r($comments);
 	//echo "</pre>";
 }
-
-if(isset($_GET['style'])) {
+else if(isset($_GET['style'])) {
 	echo file_get_contents("../theme/style.css");
+}
+else {
+	ob_start();
+	require_once('../theme/home.php');
+	$template = ob_get_contents();
+	ob_end_clean();
+
+	$activities = $plusify->getMyActivities();
+	$object = $plusify->extractActivities($activities);
+
+	echo $mustache->render($template, $object);
+
+	//echo "<pre>";
+	//echo print_r($object);
+	//echo print_r($activities);
+	//echo "</pre>";
 }
 
 
@@ -50,7 +52,8 @@ class Plusify {
 	/* START CONFIGURATION */
 	private $api_url = "https://www.googleapis.com/plus/v1";
 	private $api_key = "YOUR GOOGLE API KEY";
-	private $google_id = "YOUR GOOGLE PLUS ID";
+	private $google_id = "YOUR GOOGLE + ID";
+	private $clean_urls = true;  //You need mod_rewrite enabled to enable this
 	/* END CONFIGURATION */
 
 	private $SETTINGS = array();
@@ -60,6 +63,7 @@ class Plusify {
    		$this->SETTINGS['api_key'] = $this->api_key;
    		$this->SETTINGS['api_url'] = $this->api_url;
    		$this->SETTINGS['user_ip'] = $_SERVER['REMOTE_ADDR'];
+   		$this->SETTINGS['clean_urls'] = $this->clean_urls;
    	}
 
 	function doRequest($url) {
@@ -99,8 +103,102 @@ class Plusify {
 		return $this->doRequest("{$this->SETTINGS['api_url']}/activities/{$id}");	
 	}
 
+	function extractActivities($activities) {
+		$objects = array();
+		if(isset($activities['items'])) {
+			foreach($activities['items'] as $key => $activity) {
+				$objects['items'][$key] = $this->extractActivity($activity);
+			}
+		}
+		return $objects;
+	}
+
+	function extractActivity($activity) {
+		$object['id'] = $activity['id'];
+		if($this->SETTINGS['clean_urls']) {
+			$object['local_url'] = "/activity/{$activity['id']}/";
+		}
+		else {
+			$object['local_url'] = "?activity={$activity['id']}";	
+		}
+		$object['url'] = $activity['url'];
+		$object['timestamp'] = $activity['published'];
+		$object['author'] = $activity['actor']['displayName'];
+		$object['author_id'] = $activity['actor']['id'];
+		$object['author_image'] = $activity['actor']['image']['url'];
+		$object['author_url'] = $activity['actor']['url'];
+		$object['content'] = $activity['object']['content'];
+		$object['title'] = $activity['title'];
+		if(isset($object['annotation'])) {
+			$object['annotation'] = $activity['annotation'];
+		}
+		$object['reshared_author'] = false;
+		if(stripos($activity['title'], "Reshared") !== false) {
+			$first_word = explode(" ", $activity['object']['content']);
+			$first_word = strip_tags($first_word[0]);
+			$author = explode("Reshared post from ", $activity['title']);
+			$author = explode($first_word, $author[1]);
+			$author = $author[0];
+			$object['reshared_author'] = trim($author);
+			$title_split =  explode($first_word, $activity['title']);
+			$object['title'] = "{$first_word} {$title_split[1]}";
+		}
+		if(isset($activity['object']['attachments'])) {
+			foreach($activity['object']['attachments'] as $attachment) {
+				if($attachment['objectType'] == "article") {
+					$object['attachment_title'] = $attachment['displayName'];
+					if(isset($attachment['content'])) {
+						$object['attachment_content'] = $attachment['content'];
+					}
+					$object['attachment_url'] =$attachment['url'];
+				}
+				if($attachment['objectType'] == "photo") {
+					$object['attachment_image'] = $attachment['fullImage']['url'];
+				}
+				if($attachment['objectType'] == "video") {
+					$object['attachment_title'] = $attachment['displayName'];
+					if(isset($attachment['content'])) {
+						$object['attachment_content'] = $attachment['content'];
+					}
+					$object['attachment_url'] =$attachment['url'];
+					$object['attachment_video'] = $attachment['url'];
+					$video_id = explode("/v/", $attachment['url']);
+					$video_id = explode("&", $video_id[1]);
+					$video_id = $video_id[0];
+					$object['attachment_video_id'] = $video_id;
+					$object['attachment_image'] = $attachment['image']['url'];
+				}
+			}
+		}
+		return $object;
+	}
+
 	function getComments($id) {
 		return $this->doRequest("{$this->SETTINGS['api_url']}/activities/{$id}/comments");
+	}
+
+	function extractComments($comments) {
+		$objects = array();
+		if(isset($comments['items'])) {
+			foreach($comments['items'] as $key => $comment) {
+				$objects['items'][$key] = $this->extractComment($comment);
+			}
+		}
+		return $objects;
+	}
+
+	function extractComment($comment) {
+		$object['id'] = $comment['id'];
+		$object['activity_id'] = $comment['inReplyTo'][0]['id'];
+		$object['activity_url'] = $comment['inReplyTo'][0]['url'];
+		$object['timestamp'] = $comment['published'];
+		$object['url'] = $comment['selfLink'];
+		$object['author'] = $comment['actor']['displayName'];
+		$object['author_id'] = $comment['actor']['id'];
+		$object['author_url'] = $comment['actor']['url'];
+		$object['author_image'] = $comment['actor']['image']['url'];
+		$object['content'] = $comment['object']['content'];
+		return $object;
 	}
 }
 

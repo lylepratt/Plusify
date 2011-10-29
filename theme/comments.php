@@ -4,9 +4,7 @@
 		<ul>
 		{{#items}}
 			<li>
-			{{#object}}
-				{{{content}}}
-			{{/object}}
+				<p>{{{content}}}</p>
 			</li>
 		{{/items}}
 		</ul>
