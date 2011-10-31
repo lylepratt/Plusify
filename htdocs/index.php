@@ -43,6 +43,7 @@ class Plusify {
 	public  $SETTINGS_GOOGLE_ID = "YOUR GOOGLE + ID";
 	private $SETTINGS_CLEAN_URLS = true;  //You need mod_rewrite enabled to enable this
 	private $SETTINGS_TEMPLATE_DIR = "../theme/";
+	private $SETTINGS_ROOT_URL = "/";  //Use this if you want put this at something like yoursite.com/blog/. In that case it should be /blog/
 	private $SETTINGS_SQLITE_FILE = "../plusify.sql";
 	private $SETTINGS_TIME_BETWEEN_UPDATES = 30;  //SECONDS BETWEEN CHECKS TO GOOGLE API FOR UPDATES
 	
