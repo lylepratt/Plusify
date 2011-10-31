@@ -3,72 +3,132 @@
 $plusify = new Plusify;
 $mustache = new Mustache;
 
+/* START ROUTES */
 
 if(isset($_GET['activity'])) {
 	$activity_id = $_GET['activity'];
 
-	ob_start();
-	require_once('../theme/activity.php');
-	$template = ob_get_contents();
-	ob_end_clean();
-
-	$activity = $plusify->getActivity($activity_id);
-	$comments = $plusify->getComments($activity_id);
-	$object['content'] = $plusify->extractActivity($activity);
-	$object['comments'] = $plusify->extractComments($comments);
-
-	echo $mustache->render($template, $object);
-
-	//echo "<pre>";
-	//echo print_r($object);
-	//echo print_r($activity);
-	//echo print_r($comments);
-	//echo "</pre>";
+	$object['content'] = $plusify->getActivity($activity_id);
+	$object['comments'] = $plusify->getComments($activity_id);
+	if($object['content']) {
+		$template = $plusify->renderPage('activity.php');
+		echo $mustache->render($template, $object);
+	}
+	else {
+		$template = $plusify->render404();
+		echo $mustache->render($template, array());
+	}
 }
 else if(isset($_GET['style'])) {
-	echo file_get_contents("../theme/style.css");
+	$template = $plusify->renderPage('style.css');
+	echo $template;
 }
 else {
-	ob_start();
-	require_once('../theme/home.php');
-	$template = ob_get_contents();
-	ob_end_clean();
-
-	$activities = $plusify->getMyActivities();
-	$object = $plusify->extractActivities($activities);
-
+	$template = $plusify->renderPage('home.php');
+	$object['items'] = $plusify->getActivityList($plusify->SETTINGS_GOOGLE_ID);
+	$object['features'] = $plusify->getRecentPhotos($plusify->SETTINGS_GOOGLE_ID);
 	echo $mustache->render($template, $object);
-
-	//echo "<pre>";
-	//echo print_r($object);
-	//echo print_r($activities);
-	//echo "</pre>";
 }
 
+/* END ROUTES */
 
+/* START PLUSIFY CLASS */
 
 class Plusify {
 
 	/* START CONFIGURATION */
-	private $api_url = "https://www.googleapis.com/plus/v1";
-	private $api_key = "YOUR GOOGLE API KEY";
-	private $google_id = "YOUR GOOGLE + ID";
-	private $clean_urls = true;  //You need mod_rewrite enabled to enable this
+	
+	private $SETTINGS_API_URL = "https://www.googleapis.com/plus/v1";
+	private $SETTINGS_API_KEY = "YOUR GOOGLE API KEY";
+	public  $SETTINGS_GOOGLE_ID = "YOUR GOOGLE + ID";
+	private $SETTINGS_CLEAN_URLS = true;  //You need mod_rewrite enabled to enable this
+	private $SETTINGS_TEMPLATE_DIR = "../theme/";
+	private $SETTINGS_SQLITE_FILE = "../plusify.sql";
+	private $SETTINGS_TIME_BETWEEN_UPDATES = 30;  //SECONDS BETWEEN CHECKS TO GOOGLE API FOR UPDATES
+	
 	/* END CONFIGURATION */
 
-	private $SETTINGS = array();
+	private $db;
 
 	function __construct() {
-   		$this->SETTINGS['google_id'] = $this->google_id;
-   		$this->SETTINGS['api_key'] = $this->api_key;
-   		$this->SETTINGS['api_url'] = $this->api_url;
-   		$this->SETTINGS['user_ip'] = $_SERVER['REMOTE_ADDR'];
-   		$this->SETTINGS['clean_urls'] = $this->clean_urls;
-   	}
+		if ($this->db = new SQLiteDatabase($this->SETTINGS_SQLITE_FILE)) {
 
-	function doRequest($url) {
+			$test_activity = @$this->db->query('SELECT * FROM activity WHERE id = 1');
+			if($test_activity === false) {
+				$activity = "CREATE TABLE activity (
+					id TEXT PRIMARY KEY,
+			        local_url TEXT NOT NULL,
+			        url TEXT NOT NULL,
+			        timestamp TEXT NOT NULL,
+			        author TEXT NOT NULL,
+			        author_id TEXT NOT NULL,
+			        author_image TEXT NOT NULL,
+			        author_url TEXT NOT NULL,
+			        comments INTEGER NOT NULL,
+			        plus_ones INTEGER NOT NULL,
+			        content TEXT NOT NULL,
+			        title TEXT NOT NULL,
+			        reshared_author TEXT,
+			        attachment_title TEXT,
+			        attachment_content TEXT,
+			        attachment_url TEXT,
+					attachment_video TEXT,
+					attachment_video_id TEXT,
+					attachment_image TEXT
+				);";
+	       		$create_activity = $this->db->query("{$activity}");
+       		}
 
-		$ch = curl_init( $url . "?key={$this->SETTINGS['api_key']}&userIp={$this->SETTINGS['user_ip']}");
+       		$test_comment = @$this->db->query('SELECT * FROM comment WHERE id = 1');
+			if($test_comment === false) {
+				$comment = "CREATE TABLE comment (
+					id TEXT PRIMARY KEY,
+					activity_id TEXT NOT NULL,
+					activity_url TEXT NOT NULL,
+					timestamp TEXT NOT NULL,
+					url TEXT NOT NULL,
+					author TEXT NOT NULL,
+					author_id TEXT NOT NULL,
+					author_url TEXT NOT NULL,
+					author_image TEXT NOT NULL,
+					content TEXT NOT NULL,
+					FOREIGN KEY(activity_id) REFERENCES activity(id)
+				);";
+	       		$create_comment = $this->db->query("{$comment}");
+			}
+
+			$test_meta = @$this->db->query('SELECT * FROM meta');
+			if($test_meta === false) {
+				$meta = "CREATE TABLE meta (
+					key TEXT PRIMARY KEY,
+					value TEXT NOT NULL
+				);";
+	       		$create_meta = $this->db->query("{$meta}");
+			}
+
+       	}
+	}
+
+	function sqliteInsertArrayQuery($table, $data) {
+		foreach ($data as $field=>$value) {
+			$fields[] = "'" . $field . "'";
+			$values[] = "'" . sqlite_escape_string($value) . "'";
+		}
+		$field_list = join(',', $fields);
+		$value_list = join(', ', $values);
+		
+		$query = "INSERT INTO '" . $table . "' (" . $field_list . ") VALUES (" . $value_list . ")";
+		
+		return $query;
+	}
+
+	function doRequest($url, $multi_request=false) {
+		if(!$multi_request) {
+			$ch = curl_init( $url . "?key={$this->SETTINGS_API_KEY}&userIp={$_SERVER['REMOTE_ADDR']}");
+		}
+		else {
+			$ch = curl_init( $url . "&key={$this->SETTINGS_API_KEY}&userIp={$_SERVER['REMOTE_ADDR']}");	
+		}
 
 		$options = array(
 			CURLOPT_RETURNTRANSFER => true,
@@ -77,37 +137,235 @@ class Plusify {
 
 		curl_setopt_array( $ch, $options );
 
-		$result = curl_exec($ch); // Getting jSON result string
+		$result = curl_exec($ch);
 		$result = json_decode($result, true);
+		
+		//echo "<pre>";
+		//print_r($result);
+		//echo "</pre>";
+		//flush();
+		if(isset($result['error'])) {
+			return false;
+		}
+		else {
+			return $result;
+		}
+	}
 
+	function doMultiRequest($url, $max_results=20) {
+		$result = $this->doRequest($url);
+		for($i=count($result['items']); $i <= $max_results; $i+count($result['items'])) {
+			$sub_request = $this->doRequest($result['nextLink'], true);
+			if(isset($sub_request['items'])) {
+				array_push($result['items'], $sub_request['items']);
+			}
+			else {
+				break 1;
+			}
+		}
 		return $result;
 	}
 
-	function getMe() {
-		return $this->doRequest("{$this->SETTINGS['api_url']}/people/{$this->SETTINGS['google_id']}");		
+	function renderPage($template) {
+		$template = $this->SETTINGS_TEMPLATE_DIR . $template;
+		if(file_exists($template)) {
+			ob_start();
+			require_once($template);
+			$output = ob_get_contents();
+			ob_end_clean();
+		}
+		else {
+			header('HTTP/1.0 500 Server Error');
+			$output = "<h1>500!</h1><p>Template not found!</p>";
+		}
+		return $output;
+	}
+
+	function render404() {
+		$template = $this->SETTINGS_TEMPLATE_DIR . "404.php";
+		if(file_exists($template)) {
+			ob_start();
+			require_once($template);
+			$output = ob_get_contents();
+			ob_end_clean();
+		}
+		else {
+			header('HTTP/1.0 404 Not Found');
+			$output = "<h1>Aww Shucks! 404!</h1><p>You found an unknown page! How does that even happen?</p>";
+		}
+		return $output;
+	}
+
+	function getRawPerson($id) {
+		return $this->doRequest("{$this->SETTINGS_API_URL}/people/{$id}");
+	}
+
+	function getRawActivityList($person_id) {
+		return $this->doMultiRequest("{$this->SETTINGS_API_URL}/people/{$person_id}/activities/public");	
+	}
+
+	function getRawActivity($id) {
+		return $this->doRequest("{$this->SETTINGS_API_URL}/activities/{$id}");	
+	}
+
+	function getRawComments($id) {
+		return $this->doRequest("{$this->SETTINGS_API_URL}/activities/{$id}/comments");
 	}
 
 	function getPerson($id) {
-		return $this->doRequest("{$this->SETTINGS['api_url']}/people/{$id}");
+		$object = $this->getRawPerson($id);
+		return $object;
 	}
 
-	function getActivityList($person_id) {
-		return $this->doRequest("{$this->SETTINGS['api_url']}/people/{$person_id}/activities/public");	
+	function getRecentPhotos($person_id) {
+		$query = "SELECT title, local_url, attachment_image, attachment_title, attachment_url FROM activity WHERE attachment_image NOT NULL LIMIT 5;";
+		$query_result = $this->db->query("{$query}");
+		$object = $query_result->fetchAll(SQLITE_ASSOC);
+		$object = $object;
+		return $object;
 	}
 
-	function getMyActivities() {
-		return $this->doRequest("{$this->SETTINGS['api_url']}/people/{$this->SETTINGS['google_id']}/activities/public");		
+	function getActivityList($person_id, $force_check=false) {
+		$query_check = "SELECT value FROM meta where key = 'last_check_activity_list';";
+		$query_check_result = $this->db->query("{$query_check}");
+		$current_time = time();
+		if($query_check_result->numRows() == 0) {
+			$query_check_insert = "INSERT INTO meta (key, value) VALUES ('last_check_activity_list', '{$current_time}');";
+			$query_check_insert_result= $this->db->query("{$query_check_insert}");
+			$last_checked = $current_time;
+			$force_check = true;
+		}
+		else{
+			$last_checked = $query_check_result->fetchAll(SQLITE_ASSOC);
+			$last_checked = $last_checked[0]['value'];
+		}
+
+		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
+			echo "<br>CHECKING FOR UPDATES<br>";
+			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_activity_list';";
+			$query_check_update_result= $this->db->query("{$query_check_update}");
+
+			$object = $this->getRawActivityList($person_id);
+			if($object) {
+				$object = $this->extractActivities($object);
+				foreach($object as $activity) {
+					$query_dup_check = "SELECT * FROM activity WHERE id = '{$activity['id']}';";
+					$query_dup_check_result = $this->db->query("{$query_dup_check}");
+					if($query_dup_check_result->numRows() == 0) {
+						$insert_query = $this->sqliteInsertArrayQuery("activity", $activity);
+						//echo "<BR>{$insert_query}<BR><BR><BR>";
+						$insert_query_result= $this->db->query("{$insert_query}");					
+					}
+				}
+			}
+		}
+
+		$query = "SELECT * FROM activity LIMIT 100;";
+		$query_result = $this->db->query("{$query}");
+		$object = $query_result->fetchAll(SQLITE_ASSOC);
+		$object = $object;
+		return $object;
 	}
 
-	function getActivity($id) {
-		return $this->doRequest("{$this->SETTINGS['api_url']}/activities/{$id}");	
+	function getActivity($id, $force_check=false) {
+		$query_check = "SELECT value FROM meta where key = 'last_check_activity_{$id}';";
+		$query_check_result = $this->db->query("{$query_check}");
+		$current_time = time();
+		if($query_check_result->numRows() == 0) {
+			$query_check_insert = "INSERT INTO meta (key, value) VALUES ('last_check_activity_{$id}', '{$current_time}');";
+			$query_check_insert_result= $this->db->query("{$query_check_insert}");
+			$last_checked = $current_time;
+			$force_check = true;
+		}
+		else{
+			$last_checked = $query_check_result->fetchAll(SQLITE_ASSOC);
+			$last_checked = $last_checked[0]['value'];
+		}
+
+		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
+			echo "<br>CHECKING FOR UPDATES<br>";
+			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_activity_{$id}';";
+			$query_check_update_result= $this->db->query("{$query_check_update}");
+			$object = $this->getRawActivity($id);
+			if($object) {
+				$object = $this->extractActivity($object);
+				$query_dup_check = "SELECT * FROM activity WHERE id = '{$object['id']}';";
+				$query_dup_check_result = $this->db->query("{$query_dup_check}");
+				if($query_dup_check_result->numRows() == 0) {
+					$insert_query = $this->sqliteInsertArrayQuery("activity", $object);
+					//echo "<BR>{$insert_query}<BR><BR><BR>";
+					$insert_query_result = $this->db->query("{$insert_query}");				
+				}
+			}
+		}
+
+		$query = "SELECT * FROM activity WHERE id = '{$id}';";
+		$query_result = $this->db->query("{$query}");
+		$object = $query_result->fetchAll(SQLITE_ASSOC);
+		$object = $object[0];
+		return $object;
+	}
+
+	function getComments($id, $force_check=false) {
+		$query_check = "SELECT value FROM meta where key = 'last_check_comments_activity_{$id}';";
+		$query_check_result = $this->db->query("{$query_check}");
+		$current_time = time();
+		if($query_check_result->numRows() == 0) {
+			$query_check_insert = "INSERT INTO meta (key, value) VALUES ('last_check_comments_activity_{$id}', '{$current_time}');";
+			$query_check_insert_result= $this->db->query("{$query_check_insert}");
+			$last_checked = $current_time;
+			$force_check = true;
+		}
+		else{
+			$last_checked = $query_check_result->fetchAll(SQLITE_ASSOC);
+			$last_checked = $last_checked[0]['value'];
+		}
+
+		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
+			echo "<br>CHECKING FOR COMMENTS<br>";
+			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_comments_activity_{$id}';";
+			$query_check_update_result= $this->db->query("{$query_check_update}");
+
+			$object = $this->getRawComments($id);
+			if($object) {
+				$object = $this->extractComments($object);
+				foreach($object as $comment) {
+					$query_dup_check = "SELECT * FROM comment WHERE id = '{$comment['id']}';";
+					$query_dup_check_result = $this->db->query("{$query_dup_check}");
+					if($query_dup_check_result->numRows() == 0) {
+						$insert_query = $this->sqliteInsertArrayQuery("comment", $comment);
+						//echo "{$insert_query}<BR><BR><BR>";
+						$insert_query_result= $this->db->query("{$insert_query}");					
+					}
+				}
+			}
+		}
+
+		$query = "SELECT * FROM comment WHERE activity_id = '{$id}';";
+		$query_result = $this->db->query("{$query}");
+		$object = $query_result->fetchAll(SQLITE_ASSOC);
+		$object = $object;
+		return $object;
+	}
+
+	function extractRecentImages($activities) {
+		$objects = array();
+		if(isset($activities['items'])) {
+			foreach($activities['items'] as $key => $activity) {
+				$extractedActivity = $this->extractActivity($activity);
+				if(isset($extractedActivity['attachment_image'])) {
+					$objects[] = "";
+				}
+			}
+		}
+		return $objects;
 	}
 
 	function extractActivities($activities) {
 		$objects = array();
 		if(isset($activities['items'])) {
 			foreach($activities['items'] as $key => $activity) {
-				$objects['items'][$key] = $this->extractActivity($activity);
+				$objects[$key] = $this->extractActivity($activity);
 			}
 		}
 		return $objects;
@@ -115,8 +373,8 @@ class Plusify {
 
 	function extractActivity($activity) {
 		$object['id'] = $activity['id'];
-		if($this->SETTINGS['clean_urls']) {
-			$object['local_url'] = "/activity/{$activity['id']}/";
+		if($this->SETTINGS_CLEAN_URLS) {
+			$object['local_url'] = "activity/{$activity['id']}/";
 		}
 		else {
 			$object['local_url'] = "?activity={$activity['id']}";	
@@ -127,6 +385,8 @@ class Plusify {
 		$object['author_id'] = $activity['actor']['id'];
 		$object['author_image'] = $activity['actor']['image']['url'];
 		$object['author_url'] = $activity['actor']['url'];
+		$object['comments'] = $activity['object']['replies']['totalItems'];
+		$object['plus_ones'] = $activity['object']['plusoners']['totalItems'];
 		$object['content'] = $activity['object']['content'];
 		$object['title'] = $activity['title'];
 		if(isset($object['annotation'])) {
@@ -173,15 +433,11 @@ class Plusify {
 		return $object;
 	}
 
-	function getComments($id) {
-		return $this->doRequest("{$this->SETTINGS['api_url']}/activities/{$id}/comments");
-	}
-
 	function extractComments($comments) {
 		$objects = array();
 		if(isset($comments['items'])) {
 			foreach($comments['items'] as $key => $comment) {
-				$objects['items'][$key] = $this->extractComment($comment);
+				$objects[$key] = $this->extractComment($comment);
 			}
 		}
 		return $objects;
@@ -201,6 +457,8 @@ class Plusify {
 		return $object;
 	}
 }
+
+/* END PLUSIFY CLASS */
 
 /**
  * A Mustache implementation in PHP.

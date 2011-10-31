@@ -1,17 +1,29 @@
 <?php
-include_once('../theme/header.php');
+include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 ?>
-
-
-
-<h1>Lyle Pratt . com</h1>
+<div id="features">
+	{{#features}}
+		<div class="featured_item">
+			<span class="featured_item_title">{{title}}</span>
+			<a href="{{local_url}}"><img class="featured_item_image" src="{{attachment_image}}" /></a>
+		</div>
+	{{/features}}
+</div>
+<script>
+	$(document).ready(function(){
+		$('#features').cycle({
+			timeout: 5000,
+			fx: 'fade'
+		});
+	});
+</script>
 <ul>
 {{#items}}
 	<li>
 		<h2 class="title"><a href="{{local_url}}">{{title}}</a></h2>
 		<div class="meta">
-			<p class="commentsCount">Comments: </p>
-			<p class="plusOneCount">+1s: </p>
+			<p class="commentsCount">Comments: {{comments}}</p>
+			<p class="plusOneCount">+1s: {{plus_ones}}</p>
 			<p class="timestamp">Timestamp: {{timestamp}}</p>
 		</div>
 
@@ -50,5 +62,5 @@ include_once('../theme/header.php');
 </ul>
 
 <?php
-include_once('../theme/footer.php');
+include_once($this->SETTINGS_TEMPLATE_DIR . 'footer.php');
 ?>

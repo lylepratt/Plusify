@@ -3,8 +3,40 @@
 }
 
 #sidebar {
+	float: right;
+	width: 200px;
+	min-height: 500px;
 	background-color: #CCC
 }
+
+#features {
+	height: 250px;
+	margin-bottom: 10px;
+}
+
+	.featured_item {
+		
+	}
+
+		.featured_item_title {
+			position: absolute;
+			margin: 10px 20px;
+			max-width: 390px;
+		}
+
+		.featured_item_image {
+			width: 400px;
+			max-height: 250px;
+		}
+
+#content {
+	
+}
+
+	.plusOneWrap {
+		float: left;
+		margin-top: 5px;
+	}
 
 #footer {
 	background-color: #CCC
