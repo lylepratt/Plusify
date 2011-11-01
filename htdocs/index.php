@@ -126,8 +126,8 @@ class Plusify {
 		if(isset($_GET['activity'])) {
 			$activity_id = $_GET['activity'];
 
-			$object['person'] = $this->getPerson($this->SETTINGS_GOOGLE_ID);
 			$object['content'] = $this->getActivity($activity_id);
+			$object['person'] = $this->getPerson($this->SETTINGS_GOOGLE_ID);
 			$object['comments'] = $this->getComments($activity_id);
 			if($object['content']) {
 				$template = $this->renderPage('activity.php');
@@ -289,7 +289,7 @@ class Plusify {
 	}
 
 	function getPerson($id, $force_check=false) {
-		if($this->checkForUpdate('last_check_person_{$id}', $force_check)) {
+		if($this->checkForUpdate("last_check_person_{$id}", $force_check)) {
 			$this->message .= "<span>Checked for Person Updates</span>";
 
 			$object = $this->getRawPerson($id);
@@ -347,7 +347,7 @@ class Plusify {
 	}
 
 	function getActivity($id, $force_check=false) {
-		if($this->checkForUpdate('last_check_activity_{$id}', $force_check)) {
+		if($this->checkForUpdate("last_check_activity_{$id}", $force_check)) {
 			$this->message .= "<span>Checked for Activity Updates</span>";
 
 			$object = $this->getRawActivity($id);
@@ -371,7 +371,7 @@ class Plusify {
 	}
 
 	function getComments($id, $force_check=false) {
-		if($this->checkForUpdate('last_check_comments_activity_{$id}', $force_check)) {
+		if($this->checkForUpdate("last_check_comments_activity_{$id}", $force_check)) {
 			$this->message .= "<span>Checked for Comment Updates</span>";
 
 			$object = $this->getRawComments($id);
@@ -450,7 +450,7 @@ class Plusify {
 			$object['local_url'] = "{$this->SETTINGS_ROOT_URL}?activity={$activity['id']}";	
 		}
 		$object['url'] = $activity['url'];
-		$object['timestamp'] = strftime("%d/%m/%y %I:%M %p", strtotime($activity['published']));
+		$object['timestamp'] = strftime("%m/%d/%y %I:%M %p", strtotime($activity['published']));
 		$object['author'] = $activity['actor']['displayName'];
 		$object['author_id'] = $activity['actor']['id'];
 		$object['author_image'] = $activity['actor']['image']['url'];
