@@ -25,6 +25,20 @@ a {
 	overflow: hidden;
 }
 
+
+.message {
+	margin: 10px 0px;
+	background-color: #E6E7E3;
+	padding: 3px;
+	font-size: 12px;
+}
+
+	.message span {
+		display: block;
+		float: left;
+		margin-right: 10px;	
+	}
+
 #header {
 	background-color: #E6E7E3;
 	padding: 0;
@@ -75,7 +89,6 @@ a {
 #content {
 	
 }
-
 		.plusOneWrap {
 			float: left;
 			margin-top: 0px;

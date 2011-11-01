@@ -82,6 +82,26 @@ class Plusify {
 				$create_comment = $this->db->query("{$comment}");
 			}
 
+			$test_person = @$this->db->query('SELECT * FROM person WHERE id = 1');
+			if($test_person === false) {
+				$person = "CREATE TABLE person (
+					id TEXT PRIMARY KEY,
+					display_name TEXT,
+					given_name TEXT,
+					middle_name TEXT,
+					family_name TEXT,
+					nickname TEXT,
+					tagline TEXT,
+					birthday TEXT,
+					gender TEXT,
+					about_me TEXT,
+					current_location TEXT,
+					url TEXT,
+					image TEXT
+				);";
+				$create_person = $this->db->query("{$person}");
+			}
+
 			$test_meta = @$this->db->query('SELECT * FROM meta');
 			if($test_meta === false) {
 				$meta = "CREATE TABLE meta (
@@ -116,9 +136,10 @@ class Plusify {
 			return $template;
 		}
 		else {
-			$template = $this->renderPage('home.php');
+			$object['person'] = $this->getPerson($this->SETTINGS_GOOGLE_ID);
 			$object['items'] = $this->getActivityList($this->SETTINGS_GOOGLE_ID);
 			$object['features'] = $this->getRecentPhotos($this->SETTINGS_GOOGLE_ID);
+			$template = $this->renderPage('home.php');
 			return $this->mustache->render($template, $object);
 		}
 	}
@@ -226,8 +247,61 @@ class Plusify {
 		return $this->doRequest("{$this->SETTINGS_API_URL}/activities/{$id}/comments");
 	}
 
-	function getPerson($id) {
-		$object = $this->getRawPerson($id);
+	function getOrNone($object, $key) {
+		if(isset($object[$key])) {
+			return $object[$key];
+		}
+		else {
+			return "";
+		}
+	}
+
+	function checkForUpdate($key, $force_check=false) {
+		$query_check = "SELECT value FROM meta where key = '{$key}';";
+		$query_check_result = $this->db->query("{$query_check}");
+		$current_time = time();
+		if($query_check_result->numRows() == 0) {
+			$query_check_insert = "INSERT INTO meta (key, value) VALUES ('{$key}', '{$current_time}');";
+			$query_check_insert_result= $this->db->query("{$query_check_insert}");
+			$last_checked = $current_time;
+			$force_check = true;
+		}
+		else{
+			$last_checked = $query_check_result->fetchAll(SQLITE_ASSOC);
+			$last_checked = $last_checked[0]['value'];
+		}
+
+		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
+			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = '{$key}';";
+			$query_check_update_result= $this->db->query("{$query_check_update}");
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	function getPerson($id, $force_check=false) {
+		if($this->checkForUpdate('last_check_person_{$id}', $force_check)) {
+			$this->message .= "<span>Checked for Person Updates</span>";
+
+			$object = $this->getRawPerson($id);
+			if($object) {
+				$object = $this->extractPerson($object);
+				$query_dup_check = "SELECT * FROM person WHERE id = '{$object['id']}';";
+				$query_dup_check_result = $this->db->query("{$query_dup_check}");
+				if($query_dup_check_result->numRows() == 0) {
+					$insert_query = $this->sqliteInsertArrayQuery("person", $object);
+					//echo "<BR>{$insert_query}<BR><BR><BR>";
+					$insert_query_result = $this->db->query("{$insert_query}");				
+				}
+			}
+		}
+
+		$query = "SELECT * FROM person WHERE id = '{$id}';";
+		$query_result = $this->db->query("{$query}");
+		$object = $query_result->fetchAll(SQLITE_ASSOC);
+		$object = $object[0];
 		return $object;
 	}
 
@@ -240,24 +314,8 @@ class Plusify {
 	}
 
 	function getActivityList($person_id, $force_check=false) {
-		$query_check = "SELECT value FROM meta where key = 'last_check_activity_list';";
-		$query_check_result = $this->db->query("{$query_check}");
-		$current_time = time();
-		if($query_check_result->numRows() == 0) {
-			$query_check_insert = "INSERT INTO meta (key, value) VALUES ('last_check_activity_list', '{$current_time}');";
-			$query_check_insert_result= $this->db->query("{$query_check_insert}");
-			$last_checked = $current_time;
-			$force_check = true;
-		}
-		else{
-			$last_checked = $query_check_result->fetchAll(SQLITE_ASSOC);
-			$last_checked = $last_checked[0]['value'];
-		}
-
-		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
-			$this->message .= "Checked for Updates";
-			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_activity_list';";
-			$query_check_update_result= $this->db->query("{$query_check_update}");
+		if($this->checkForUpdate('last_check_activity_list', $force_check)) {
+			$this->message .= "<span>Checked for Activity List Updates</span>";
 
 			$object = $this->getRawActivityList($person_id);
 			if($object) {
@@ -282,24 +340,9 @@ class Plusify {
 	}
 
 	function getActivity($id, $force_check=false) {
-		$query_check = "SELECT value FROM meta where key = 'last_check_activity_{$id}';";
-		$query_check_result = $this->db->query("{$query_check}");
-		$current_time = time();
-		if($query_check_result->numRows() == 0) {
-			$query_check_insert = "INSERT INTO meta (key, value) VALUES ('last_check_activity_{$id}', '{$current_time}');";
-			$query_check_insert_result= $this->db->query("{$query_check_insert}");
-			$last_checked = $current_time;
-			$force_check = true;
-		}
-		else{
-			$last_checked = $query_check_result->fetchAll(SQLITE_ASSOC);
-			$last_checked = $last_checked[0]['value'];
-		}
+		if($this->checkForUpdate('last_check_activity_{$id}', $force_check)) {
+			$this->message .= "<span>Checked for Activity Updates</span>";
 
-		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
-			$this->message .= "Checked for Updates";
-			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_activity_{$id}';";
-			$query_check_update_result= $this->db->query("{$query_check_update}");
 			$object = $this->getRawActivity($id);
 			if($object) {
 				$object = $this->extractActivity($object);
@@ -321,24 +364,8 @@ class Plusify {
 	}
 
 	function getComments($id, $force_check=false) {
-		$query_check = "SELECT value FROM meta where key = 'last_check_comments_activity_{$id}';";
-		$query_check_result = $this->db->query("{$query_check}");
-		$current_time = time();
-		if($query_check_result->numRows() == 0) {
-			$query_check_insert = "INSERT INTO meta (key, value) VALUES ('last_check_comments_activity_{$id}', '{$current_time}');";
-			$query_check_insert_result= $this->db->query("{$query_check_insert}");
-			$last_checked = $current_time;
-			$force_check = true;
-		}
-		else{
-			$last_checked = $query_check_result->fetchAll(SQLITE_ASSOC);
-			$last_checked = $last_checked[0]['value'];
-		}
-
-		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
-			$this->message .= "Checked for Comments";
-			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_comments_activity_{$id}';";
-			$query_check_update_result= $this->db->query("{$query_check_update}");
+		if($this->checkForUpdate('last_check_comments_activity_{$id}', $force_check)) {
+			$this->message .= "<span>Checked for Comment Updates</span>";
 
 			$object = $this->getRawComments($id);
 			if($object) {
@@ -359,6 +386,28 @@ class Plusify {
 		$query_result = $this->db->query("{$query}");
 		$object = $query_result->fetchAll(SQLITE_ASSOC);
 		$object = $object;
+		return $object;
+	}
+
+	function extractPerson($person) {
+		$object = array();
+		$object['id'] = $person['id'];
+		$object['display_name'] = $this->getOrNone($person, 'displayName');
+		if(isset($person['name'])) {
+			$object['given_name'] = $this->getOrNone($person['name'], 'givenName');
+			$object['middle_name'] = $this->getOrNone($person['name'], 'middleName');
+			$object['family_name'] = $this->getOrNone($person['name'], 'familyName');
+		}
+		$object['nickname'] = $this->getOrNone($person, 'nickname');
+		$object['tagline'] = $this->getOrNone($person, 'tagline');
+		$object['birthday'] = $this->getOrNone($person, 'birthday');
+		$object['gender'] = $this->getOrNone($person, 'gender');
+		$object['about_me'] = $this->getOrNone($person, 'aboutMe');
+		$object['current_location'] = $this->getOrNone($person, 'currentLocation');
+		$object['url'] = $this->getOrNone($person, 'url');
+		if(isset($person['image'])) {
+			$object['image'] = $this->getOrNone($person['image'], 'url');
+		}
 		return $object;
 	}
 

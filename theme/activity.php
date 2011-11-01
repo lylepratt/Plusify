@@ -44,7 +44,7 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 			{{/attachment_url}}
 
 			{{#attachment_content}}
-				<p>{{attachment_content}}</p>
+				<p>{{&attachment_content}}</p>
 			{{/attachment_content}}
 			
 		<div class="attachment_media">
