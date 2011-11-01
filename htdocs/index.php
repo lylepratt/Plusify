@@ -1,36 +1,8 @@
 <?php
 
 $plusify = new Plusify;
-$mustache = new Mustache;
 
-/* START ROUTES */
-
-if(isset($_GET['activity'])) {
-	$activity_id = $_GET['activity'];
-
-	$object['content'] = $plusify->getActivity($activity_id);
-	$object['comments'] = $plusify->getComments($activity_id);
-	if($object['content']) {
-		$template = $plusify->renderPage('activity.php');
-		echo $mustache->render($template, $object);
-	}
-	else {
-		$template = $plusify->render404();
-		echo $mustache->render($template, array());
-	}
-}
-else if(isset($_GET['style'])) {
-	$template = $plusify->renderPage('style.css');
-	echo $template;
-}
-else {
-	$template = $plusify->renderPage('home.php');
-	$object['items'] = $plusify->getActivityList($plusify->SETTINGS_GOOGLE_ID);
-	$object['features'] = $plusify->getRecentPhotos($plusify->SETTINGS_GOOGLE_ID);
-	echo $mustache->render($template, $object);
-}
-
-/* END ROUTES */
+echo $plusify->routeRequest();
 
 /* START PLUSIFY CLASS */
 
@@ -49,9 +21,13 @@ class Plusify {
 	
 	/* END CONFIGURATION */
 
+	private $message;
 	private $db;
+	private $mustache;
 
 	function __construct() {
+		$this->mustache = new Mustache;
+
 		if ($this->db = new SQLiteDatabase($this->SETTINGS_SQLITE_FILE)) {
 
 			$test_activity = @$this->db->query('SELECT * FROM activity WHERE id = 1');
@@ -108,6 +84,33 @@ class Plusify {
 			}
 
        	}
+	}
+
+	function routeRequest() {
+		if(isset($_GET['activity'])) {
+			$activity_id = $_GET['activity'];
+
+			$object['content'] = $this->getActivity($activity_id);
+			$object['comments'] = $this->getComments($activity_id);
+			if($object['content']) {
+				$template = $this->renderPage('activity.php');
+				return $this->mustache->render($template, $object);
+			}
+			else {
+				$template = $this->render404();
+				return $this->mustache->render($template, array());
+			}
+		}
+		else if(isset($_GET['style'])) {
+			$template = $this->renderPage('style.css');
+			return $template;
+		}
+		else {
+			$template = $this->renderPage('home.php');
+			$object['items'] = $this->getActivityList($this->SETTINGS_GOOGLE_ID);
+			$object['features'] = $this->getRecentPhotos($this->SETTINGS_GOOGLE_ID);
+			return $this->mustache->render($template, $object);
+		}
 	}
 
 	function sqliteInsertArrayQuery($table, $data) {
@@ -242,7 +245,7 @@ class Plusify {
 		}
 
 		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
-			echo "<br>CHECKING FOR UPDATES<br>";
+			$this->message .= "Checked for Updates";
 			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_activity_list';";
 			$query_check_update_result= $this->db->query("{$query_check_update}");
 
@@ -284,7 +287,7 @@ class Plusify {
 		}
 
 		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
-			echo "<br>CHECKING FOR UPDATES<br>";
+			$this->message .= "Checked for Updates";
 			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_activity_{$id}';";
 			$query_check_update_result= $this->db->query("{$query_check_update}");
 			$object = $this->getRawActivity($id);
@@ -323,7 +326,7 @@ class Plusify {
 		}
 
 		if((($current_time - $last_checked) > $this->SETTINGS_TIME_BETWEEN_UPDATES) || $force_check) {
-			echo "<br>CHECKING FOR COMMENTS<br>";
+			$this->message .= "Checked for Comments";
 			$query_check_update = "UPDATE meta SET value = '{$current_time}' WHERE key = 'last_check_comments_activity_{$id}';";
 			$query_check_update_result= $this->db->query("{$query_check_update}");
 
@@ -381,7 +384,7 @@ class Plusify {
 			$object['local_url'] = "?activity={$activity['id']}";	
 		}
 		$object['url'] = $activity['url'];
-		$object['timestamp'] = $activity['published'];
+		$object['timestamp'] = strftime("%d/%m/%y %I:%M %p", strtotime($activity['published']));
 		$object['author'] = $activity['actor']['displayName'];
 		$object['author_id'] = $activity['actor']['id'];
 		$object['author_image'] = $activity['actor']['image']['url'];

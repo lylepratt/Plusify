@@ -8,6 +8,7 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 			<a href="{{local_url}}"><img class="featured_item_image" src="{{attachment_image}}" /></a>
 		</div>
 	{{/features}}
+	<div class="clear"></div>
 </div>
 <script>
 	$(document).ready(function(){
@@ -17,31 +18,19 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 		});
 	});
 </script>
-<ul>
+<ul class="home_list">
 {{#items}}
-	<li>
-		<h2 class="title"><a href="{{local_url}}">{{title}}</a></h2>
+	<li class="list_item activity">
 		<div class="meta">
+			<p class="date">{{timestamp}}</p>
+			<p> | </p>
 			<p class="commentsCount">Comments: {{comments}}</p>
+			<p> | </p>
 			<p class="plusOneCount">+1s: {{plus_ones}}</p>
-			<p class="timestamp">Timestamp: {{timestamp}}</p>
+			<div class="clear"></div>
 		</div>
-
-		<div id="post">
-
-			{{#attachment_video}}
-			<iframe class="youtube-player" type="text/html" width="640" height="385" src="http://www.youtube.com/embed/{{attachment_video_id}}" frameborder="0"></iframe>
-			{{/attachment_video}}
-
-			{{^attachment_video}}
-				{{#attachment_image}}
-					<div class="attachment_image">
-					<a href="{{attachment_url}}">
-						<img src="{{attachment_image}}" />
-					</a>
-					</div>
-				{{/attachment_image}}
-			{{/attachment_video}}
+		
+		<h2 class="title"><a href="{{local_url}}">{{title}}</a></h2>
 			
 			{{#annotation}}
 				<p>{{{annotation}}}</p>
@@ -55,8 +44,27 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 			{{^attachment_url}}
 				<p>{{attachment_title}}</p>
 			{{/attachment_url}}
-		</div>
 
+			{{#attachment_content}}
+				<p>{{&attachment_content}}</p>
+			{{/attachment_content}}
+
+		<div class="attachment_media">
+		{{#attachment_video}}
+			<iframe class="youtube-player" type="text/html" width="640" height="385" src="http://www.youtube.com/embed/{{attachment_video_id}}" frameborder="0"></iframe>
+		{{/attachment_video}}
+
+		{{^attachment_video}}
+			{{#attachment_image}}
+				<div class="attachment_image">
+				<a href="{{attachment_url}}">
+					<img src="{{attachment_image}}" />
+				</a>
+				</div>
+			{{/attachment_image}}
+		{{/attachment_video}}
+		</div>
+		<div class="clear"><div>
 	</li>
 {{/items}}
 </ul>
