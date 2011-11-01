@@ -4,11 +4,10 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 <div id="features">
 	{{#features}}
 		<div class="featured_item">
-			<span class="featured_item_title">{{title}}</span>
-			<a href="{{local_url}}"><img class="featured_item_image" src="{{attachment_image}}" /></a>
+			<a class="featured_item_link" href="{{local_url}}"><img class="featured_item_image" src="{{attachment_image}}" /></a>
+			<div class="featured_item_title"><a href="{{local_url}}">{{title}}</a></div>
 		</div>
 	{{/features}}
-	<div class="clear"></div>
 </div>
 <script>
 	$(document).ready(function(){

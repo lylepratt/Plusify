@@ -62,7 +62,7 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 			{{/attachment_image}}
 		{{/attachment_video}}
 		</div>
-		<div class="clear"><div>
+		<div class="clear"></div>
 	</div>
 {{/content}}
 

@@ -1,14 +1,16 @@
-<div id="comments">
-	<h2>Comments</h2>
-	<ul>
+<div class="comments">
+	<h2>Comments <span class="add_comment"><a target="_blank" href="{{#content}}{{url}}{{/content}}">Post a Comment</a></span></h2>
+	<ul class="comment_list">
 	{{#comments}}
-			<li>
-				<p>{{{content}}}</p>
-			</li>
+		<li class="comment_item">
+			<img class="comment_author_image" src="{{author_image}}" />
+			<p class="comment_content">{{{content}}}</p>
+			<div class="clear"></div>
+		</li>
 	{{/comments}}
 	{{^comments}}
-		No comments :(
+		<li>No comments :(</li>
 	{{/comments}}
+		<li class="comment_item"><a target="_blank" href="{{#content}}{{url}}{{/content}}">Post a Comment</a></li>
 	</ul>
-	
 </div>

@@ -1,5 +1,11 @@
 <?php
 
+/* ===================
+*  ATTENTION
+*  ===================
+*  BEFORE THIS WILL WORK YOU NEED TO COMPLETE THE CONFIGURATION OPTIONS BELOW!
+*/
+
 $plusify = new Plusify;
 
 echo $plusify->routeRequest();
@@ -120,6 +126,7 @@ class Plusify {
 		if(isset($_GET['activity'])) {
 			$activity_id = $_GET['activity'];
 
+			$object['person'] = $this->getPerson($this->SETTINGS_GOOGLE_ID);
 			$object['content'] = $this->getActivity($activity_id);
 			$object['comments'] = $this->getComments($activity_id);
 			if($object['content']) {
@@ -437,10 +444,10 @@ class Plusify {
 	function extractActivity($activity) {
 		$object['id'] = $activity['id'];
 		if($this->SETTINGS_CLEAN_URLS) {
-			$object['local_url'] = "activity/{$activity['id']}/";
+			$object['local_url'] = "{$this->SETTINGS_ROOT_URL}activity/{$activity['id']}/";
 		}
 		else {
-			$object['local_url'] = "?activity={$activity['id']}";	
+			$object['local_url'] = "{$this->SETTINGS_ROOT_URL}?activity={$activity['id']}";	
 		}
 		$object['url'] = $activity['url'];
 		$object['timestamp'] = strftime("%d/%m/%y %I:%M %p", strtotime($activity['published']));

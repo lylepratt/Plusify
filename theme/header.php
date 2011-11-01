@@ -7,7 +7,7 @@
 </head>
 <body>
 	<div id="header">
-		<h1><a href="<?=$this->SETTINGS_ROOT_URL?>">{{#person}}{{display_name}}'s{{/person}} BLOG</a></h1>
+		<h1><a href="<?=$this->SETTINGS_ROOT_URL?>">{{#person}}{{display_name}}'s{{/person}} Blog</a></h1>
 	</div>
 	<? /*include_once($this->SETTINGS_TEMPLATE_DIR . 'sidebar.php');*/ ?>
 	<div id="content">
