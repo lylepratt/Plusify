@@ -4,8 +4,17 @@ $plusify = new Plusify;
 
 echo $plusify->routeRequest();
 
-/* START PLUSIFY CLASS */
-
+/**
+ * Plusify. A simple class to create a blog from your Google Plus profile.
+ *
+ * {@link https://github.com/lylepratt/Plusify/}
+ *
+ * Plusify uses the Google+ API to populate a blog from your public Google+ posts.
+ * It stores profile data, posts, and comments in a SQLITE database, so this has the
+ * added benefit of keeping your Google+ Posts "backed up".
+ *
+ * @author Lyle Pratt {@link http://www.lylepratt.com}
+ */
 class Plusify {
 
 	/* START CONFIGURATION */
@@ -29,34 +38,33 @@ class Plusify {
 		$this->mustache = new Mustache;
 
 		if ($this->db = new SQLiteDatabase($this->SETTINGS_SQLITE_FILE)) {
-
 			$test_activity = @$this->db->query('SELECT * FROM activity WHERE id = 1');
 			if($test_activity === false) {
 				$activity = "CREATE TABLE activity (
 					id TEXT PRIMARY KEY,
-			        local_url TEXT NOT NULL,
-			        url TEXT NOT NULL,
-			        timestamp TEXT NOT NULL,
-			        author TEXT NOT NULL,
-			        author_id TEXT NOT NULL,
-			        author_image TEXT NOT NULL,
-			        author_url TEXT NOT NULL,
-			        comments INTEGER NOT NULL,
-			        plus_ones INTEGER NOT NULL,
-			        content TEXT NOT NULL,
-			        title TEXT NOT NULL,
-			        reshared_author TEXT,
-			        attachment_title TEXT,
-			        attachment_content TEXT,
-			        attachment_url TEXT,
+					local_url TEXT NOT NULL,
+					url TEXT NOT NULL,
+					timestamp TEXT NOT NULL,
+					author TEXT NOT NULL,
+					author_id TEXT NOT NULL,
+					author_image TEXT NOT NULL,
+					author_url TEXT NOT NULL,
+					comments INTEGER NOT NULL,
+					plus_ones INTEGER NOT NULL,
+					content TEXT NOT NULL,
+					title TEXT NOT NULL,
+					reshared_author TEXT,
+					attachment_title TEXT,
+					attachment_content TEXT,
+					attachment_url TEXT,
 					attachment_video TEXT,
 					attachment_video_id TEXT,
 					attachment_image TEXT
 				);";
-	       		$create_activity = $this->db->query("{$activity}");
-       		}
+					$create_activity = $this->db->query("{$activity}");
+			}
 
-       		$test_comment = @$this->db->query('SELECT * FROM comment WHERE id = 1');
+			$test_comment = @$this->db->query('SELECT * FROM comment WHERE id = 1');
 			if($test_comment === false) {
 				$comment = "CREATE TABLE comment (
 					id TEXT PRIMARY KEY,
@@ -71,7 +79,7 @@ class Plusify {
 					content TEXT NOT NULL,
 					FOREIGN KEY(activity_id) REFERENCES activity(id)
 				);";
-	       		$create_comment = $this->db->query("{$comment}");
+				$create_comment = $this->db->query("{$comment}");
 			}
 
 			$test_meta = @$this->db->query('SELECT * FROM meta');
@@ -80,12 +88,14 @@ class Plusify {
 					key TEXT PRIMARY KEY,
 					value TEXT NOT NULL
 				);";
-	       		$create_meta = $this->db->query("{$meta}");
+				$create_meta = $this->db->query("{$meta}");
 			}
-
-       	}
+		}
 	}
 
+	/*
+	* CORE APPLICATION ROUTING AND VIEWS ARE HERE
+	*/
 	function routeRequest() {
 		if(isset($_GET['activity'])) {
 			$activity_id = $_GET['activity'];
@@ -461,8 +471,6 @@ class Plusify {
 		return $object;
 	}
 }
-
-/* END PLUSIFY CLASS */
 
 /**
  * A Mustache implementation in PHP.
