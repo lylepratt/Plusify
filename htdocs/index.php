@@ -32,7 +32,7 @@ class Plusify {
 	private $SETTINGS_TEMPLATE_DIR = "../theme/";  //Theme files go in this directory
 	private $SETTINGS_ROOT_URL = "/";  //Use this if you want put this at something like yoursite.com/blog/. In that case it should be /blog/
 	private $SETTINGS_SQLITE_FILE = "../plusify.sql";  //Make sure it and its parent directory is writable by your web server 
-	private $SETTINGS_TIME_BETWEEN_UPDATES = 30;  //seconds between checks to the api for updates. It only checks when a page is loaded.
+	private $SETTINGS_TIME_BETWEEN_UPDATES = 14400;  //Seconds between checks to the api for updates. It only checks when a page is loaded.
 	
 	/* END CONFIGURATION */
 
