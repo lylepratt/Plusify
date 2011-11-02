@@ -9,7 +9,7 @@
 		</li>
 	{{/comments}}
 	{{^comments}}
-		<li>No comments :(</li>
+		<li class="comment_item">No comments :(</li>
 	{{/comments}}
 		<li class="comment_item"><a target="_blank" href="{{#content}}{{url}}{{/content}}">Post a Comment</a></li>
 	</ul>

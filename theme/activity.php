@@ -29,6 +29,9 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 		</div>
 		
 		<h2 class="title"><a href="{{local_url}}">{{title}}</a></h2>
+			{{#reshared_author}}
+				<p>Reshared post from <a href="{{reshared_author_url}}">{{reshared_author}}</a></p>
+			{{/reshared_author}}
 			
 			{{#annotation}}
 				<p>{{{annotation}}}</p>
@@ -49,7 +52,7 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 			
 		<div class="attachment_media">
 		{{#attachment_video}}
-			<iframe class="youtube-player" type="text/html" width="640" height="385" src="http://www.youtube.com/embed/{{attachment_video_id}}" frameborder="0"></iframe>
+			<iframe class="youtube-player" type="text/html" width="560" height="355" src="http://www.youtube.com/embed/{{attachment_video_id}}" frameborder="0"></iframe>
 		{{/attachment_video}}
 
 		{{^attachment_video}}

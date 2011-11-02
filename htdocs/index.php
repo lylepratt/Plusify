@@ -25,14 +25,14 @@ class Plusify {
 
 	/* START CONFIGURATION */
 	
-	private $SETTINGS_API_URL = "https://www.googleapis.com/plus/v1";
-	private $SETTINGS_API_KEY = "YOUR GOOGLE API KEY";
-	public  $SETTINGS_GOOGLE_ID = "YOUR GOOGLE + ID";
+	private $SETTINGS_API_URL = "https://www.googleapis.com/plus/v1";  //Don't change this
+	private $SETTINGS_API_KEY = "YOUR GOOGLE API KEY";  //You can get one at https://code.google.com/apis/console/
+	public  $SETTINGS_GOOGLE_ID = "YOUR GOOGLE + ID";  //The big number in your Google+ profile URL
 	private $SETTINGS_CLEAN_URLS = true;  //You need mod_rewrite enabled to enable this
-	private $SETTINGS_TEMPLATE_DIR = "../theme/";
+	private $SETTINGS_TEMPLATE_DIR = "../theme/";  //Theme files go in this directory
 	private $SETTINGS_ROOT_URL = "/";  //Use this if you want put this at something like yoursite.com/blog/. In that case it should be /blog/
-	private $SETTINGS_SQLITE_FILE = "../plusify.sql";
-	private $SETTINGS_TIME_BETWEEN_UPDATES = 30;  //SECONDS BETWEEN CHECKS TO GOOGLE API FOR UPDATES
+	private $SETTINGS_SQLITE_FILE = "../plusify.sql";  //Make sure it and its parent directory is writable by your web server 
+	private $SETTINGS_TIME_BETWEEN_UPDATES = 30;  //seconds between checks to the api for updates. It only checks when a page is loaded.
 	
 	/* END CONFIGURATION */
 
@@ -60,6 +60,8 @@ class Plusify {
 					content TEXT NOT NULL,
 					title TEXT NOT NULL,
 					reshared_author TEXT,
+					reshared_author_url TEXT,
+					reshared_author_image TEXT,
 					attachment_title TEXT,
 					attachment_content TEXT,
 					attachment_url TEXT,
@@ -472,6 +474,11 @@ class Plusify {
 			$object['reshared_author'] = trim($author);
 			$title_split =  explode($first_word, $activity['title']);
 			$object['title'] = "{$first_word} {$title_split[1]}";
+			$object['reshared_author'] = trim($author);
+			$object['reshared_author_url'] = $activity['object']['actor']['url'];
+			if(isset($activity['object']['actor']['image'])) {
+				$object['reshared_author_image'] = $activity['object']['actor']['image']['url'];
+			}
 		}
 		if(isset($activity['object']['attachments'])) {
 			foreach($activity['object']['attachments'] as $attachment) {

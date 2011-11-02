@@ -1,22 +1,24 @@
 <?php
 include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 ?>
-<div id="features">
-	{{#features}}
-		<div class="featured_item">
-			<a class="featured_item_link" href="{{local_url}}"><img class="featured_item_image" src="{{attachment_image}}" /></a>
-			<div class="featured_item_title"><a href="{{local_url}}">{{title}}</a></div>
-		</div>
-	{{/features}}
-</div>
-<script>
-	$(document).ready(function(){
-		$('#features').cycle({
-			timeout: 5000,
-			fx: 'fade'
+<div id="top">
+	<div id="features">
+		{{#features}}
+			<div class="featured_item">
+				<a class="featured_item_link" href="{{local_url}}"><img class="featured_item_image" src="{{attachment_image}}" /></a>
+				<div class="featured_item_title"><a href="{{local_url}}">{{title}}</a></div>
+			</div>
+		{{/features}}
+	</div>
+	<script>
+		$(document).ready(function(){
+			$('#features').cycle({
+				timeout: 5000,
+				fx: 'fade'
+			});
 		});
-	});
-</script>
+	</script>
+</div>
 <ul class="home_list">
 {{#items}}
 	<li class="list_item activity">
@@ -31,6 +33,10 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 		
 		<h2 class="title"><a href="{{local_url}}">{{title}}</a></h2>
 			
+			{{#reshared_author}}
+				<p>Reshared post from {{reshared_author}}</p>
+			{{/reshared_author}}
+
 			{{#annotation}}
 				<p>{{{annotation}}}</p>
 			{{/annotation}}
@@ -50,7 +56,7 @@ include_once($this->SETTINGS_TEMPLATE_DIR . 'header.php');
 
 		<div class="attachment_media">
 		{{#attachment_video}}
-			<iframe class="youtube-player" type="text/html" width="640" height="385" src="http://www.youtube.com/embed/{{attachment_video_id}}" frameborder="0"></iframe>
+			<iframe class="youtube-player" type="text/html" width="560" height="355" src="http://www.youtube.com/embed/{{attachment_video_id}}" frameborder="0"></iframe>
 		{{/attachment_video}}
 
 		{{^attachment_video}}
