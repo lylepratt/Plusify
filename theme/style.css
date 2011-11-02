@@ -181,6 +181,10 @@ a {
 					font-weight: bold;
 				}
 
+				.activity p {
+					line-height: 1.4;
+				}
+
 			.activity .attachment_media {
 				margin-top: 10px;
 			}
