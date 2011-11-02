@@ -1,12 +1,11 @@
 ## Plusify ##
 The beginnings of a simple, themeable home page that runs off of your public posts to Google Plus. All posts and comments are saved in a SQLite database, so using this also has the benfit of backing up all of your public Google Plus posts. You basically just stick the `index.php` in a web directory and it works.
 
+## Example Blog ##
+http://www.lylepratt.com
 
 ## Author Comments ##
 I normally do web stuff with Python these days, but I used PHP because most web hosts support it. I've only spent a few hours working on this, so don't hate if you don't like the code or product. Also, I'm no designer so you'll probably think the default theme is ugly.
-
-## Example Blog ##
-http://www.lylepratt.com
 
 ## INSTRUCTIONS ##
 - Put `index.php` and `.htaccess` in your root web directory.
