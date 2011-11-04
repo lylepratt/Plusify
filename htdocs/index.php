@@ -315,7 +315,7 @@ class Plusify {
 	}
 
 	function getRecentPhotos($person_id) {
-		$query = "SELECT title, local_url, attachment_image, attachment_title, attachment_url FROM activity WHERE attachment_image NOT NULL LIMIT 5;";
+		$query = "SELECT title, local_url, attachment_image, attachment_title, attachment_url FROM activity WHERE attachment_image NOT NULL ORDER BY timestamp DESC LIMIT 5;";
 		$query_result = $this->db->query("{$query}");
 		$object = $query_result->fetchAll(SQLITE_ASSOC);
 		$object = $object;
@@ -341,7 +341,7 @@ class Plusify {
 			}
 		}
 
-		$query = "SELECT * FROM activity LIMIT 100;";
+		$query = "SELECT * FROM activity NOT NULL ORDER BY timestamp DESC LIMIT 100;";
 		$query_result = $this->db->query("{$query}");
 		$object = $query_result->fetchAll(SQLITE_ASSOC);
 		$object = $object;
