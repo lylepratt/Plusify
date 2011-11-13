@@ -200,7 +200,7 @@ class Plusify {
 		$result = $this->doRequest($url);
 		for($i=count($result['items']); $i <= $max_results; $i+count($result['items'])) {
 			$sub_request = $this->doRequest($result['nextLink'], true);
-			if(isset($sub_request['items'])) {
+			if(isset($sub_request['items']) && count($sub_request['items']) > 0) {
 				array_push($result['items'], $sub_request['items']);
 			}
 			else {
