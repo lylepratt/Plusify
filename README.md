@@ -2,7 +2,7 @@
 The beginnings of a simple, themeable home page that runs off of your public posts to Google Plus. All posts and comments are saved in a SQLite database, so using this also has the benefit of backing up all of your public Google Plus posts. You basically just stick the `index.php` in a web directory and it works.
 
 ## Example Blog ##
-http://lylepratt.com/activity/z13rshro4puoz1rzw04cedjiazyihnnwdcg/
+http://lylepratt.com/post/z13rshro4puoz1rzw04cedjiazyihnnwdcg/weekend-project-plusify/
 
 ## Author Comments ##
 I normally do web stuff with Python these days, but I used PHP for this because more web hosts support it. I've only spent a few hours working on this, so don't hate if you don't like the code or product. Also, I'm no designer so you'll probably think the default theme is ugly. Also, I'm using the excellent PHP Mustache implementation (https://github.com/bobthecow/mustache.php) for templates.
@@ -10,7 +10,7 @@ I normally do web stuff with Python these days, but I used PHP for this because 
 ## INSTRUCTIONS ##
 - Put `index.php` and `.htaccess` in your root web directory.
 - Put the `theme` directory somewhere other than your web directory.
-- Configure your settings in the `Configuration` section of the `Plusify` class.
+- Rename `plusify_config_example.php` to `plusify_config.php` and configure the settings.
 - Make sure the directory that holds the `SQLite` file and the file itself is writeable by your web server.
 - If you want to use the `clean_urls` configuration option and the included `.htaccess` file, you'll need `mod_rewrite` enabled.
 
