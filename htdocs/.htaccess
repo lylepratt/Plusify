@@ -1,4 +1,4 @@
 RewriteEngine On
 
-RewriteRule ^activity/([^/]+)$ /activity/$1/ [R]
-RewriteRule ^activity/([^/]+)/$ index.php?activity=$1
+RewriteRule ^post/([^/]+)/([^/]+)$ /post/$1/$2/ [R]
+RewriteRule ^post/([^/]+)/([^/]+)/$ index.php?post=$1&slug=$2

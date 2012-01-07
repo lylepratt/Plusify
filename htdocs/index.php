@@ -3,7 +3,7 @@
 /* ===================
 *  ATTENTION
 *  ===================
-*  BEFORE THIS WILL WORK YOU NEED TO COMPLETE THE CONFIGURATION OPTIONS BELOW!
+*  BEFORE THIS WILL WORK YOU NEED TO RENAME plusify_config_example.php to plusify_config.php AND COMPLETE THE CONFIGURATION OPTIONS!
 */
 
 $plusify = new Plusify;
@@ -21,26 +21,36 @@ echo $plusify->routeRequest();
  *
  * @author Lyle Pratt {@link http://www.lylepratt.com}
  */
+
 class Plusify {
 
-	/* START CONFIGURATION */
-	
-	private $SETTINGS_API_URL = "https://www.googleapis.com/plus/v1";  //Don't change this
-	private $SETTINGS_API_KEY = "YOUR GOOGLE API KEY";  //You can get one at https://code.google.com/apis/console/
-	public  $SETTINGS_GOOGLE_ID = "YOUR GOOGLE + ID";  //The big number in your Google+ profile URL
-	private $SETTINGS_CLEAN_URLS = true;  //You need mod_rewrite enabled to enable this
-	private $SETTINGS_TEMPLATE_DIR = "../theme/";  //Theme files go in this directory
-	private $SETTINGS_ROOT_URL = "/";  //Use this if you want put this at something like yoursite.com/blog/. In that case it should be /blog/
-	private $SETTINGS_SQLITE_FILE = "../plusify.sql";  //Make sure it and its parent directory is writable by your web server 
-	private $SETTINGS_TIME_BETWEEN_UPDATES = 14400;  //Seconds between checks to the api for updates. It only checks when a page is loaded.
-	
-	/* END CONFIGURATION */
+	// THESE VARIABLES ARE LOADED FROM plusify_config.php	
+	private $SETTINGS_API_URL;  //Don't change this
+	private $SETTINGS_API_KEY;  //You can get one at https://code.google.com/apis/console/
+	public  $SETTINGS_GOOGLE_ID;  //The big number in your Google+ profile URL
+	private $SETTINGS_CLEAN_URLS;  //You need mod_rewrite enabled to enable this
+	private $SETTINGS_TEMPLATE_DIR;  //Theme files go in this directory
+	private $SETTINGS_ROOT_URL;  //Use this if you want put this at something like yoursite.com/blog/. In that case it should be /blog/
+	private $SETTINGS_SQLITE_FILE;  //Make sure it and its parent directory is writable by your web server 
+	private $SETTINGS_TIME_BETWEEN_UPDATES;  //Seconds between checks to the api for updates. It only checks when a page is loaded.
 
 	private $message;
 	private $db;
 	private $mustache;
 
 	function __construct() {
+		//LOAD CONFIGURATION DATA. USE plusify_config_example.php AS A TEMPLATE
+		require_once "../plusify_config.php";
+
+		$this->SETTINGS_API_URL = $SETTINGS_API_URL;
+		$this->SETTINGS_API_KEY = $SETTINGS_API_KEY;
+		$this->SETTINGS_GOOGLE_ID = $SETTINGS_GOOGLE_ID;
+		$this->SETTINGS_CLEAN_URLS = $SETTINGS_CLEAN_URLS;
+		$this->SETTINGS_TEMPLATE_DIR = $SETTINGS_TEMPLATE_DIR;
+		$this->SETTINGS_ROOT_URL = $SETTINGS_ROOT_URL;
+		$this->SETTINGS_SQLITE_FILE = $SETTINGS_SQLITE_FILE;
+		$this->SETTINGS_TIME_BETWEEN_UPDATES = $SETTINGS_TIME_BETWEEN_UPDATES;
+
 		$this->mustache = new Mustache;
 
 		if ($this->db = new SQLiteDatabase($this->SETTINGS_SQLITE_FILE)) {
@@ -49,8 +59,9 @@ class Plusify {
 				$activity = "CREATE TABLE activity (
 					id TEXT PRIMARY KEY,
 					local_url TEXT NOT NULL,
+					slug TEXT NOT NULL,
 					url TEXT NOT NULL,
-					timestamp TEXT NOT NULL,
+					timestamp INTEGER NOT NULL,
 					author TEXT NOT NULL,
 					author_id TEXT NOT NULL,
 					author_image TEXT NOT NULL,
@@ -125,8 +136,8 @@ class Plusify {
 	* CORE APPLICATION ROUTING AND VIEWS ARE HERE
 	*/
 	function routeRequest() {
-		if(isset($_GET['activity'])) {
-			$activity_id = $_GET['activity'];
+		if(isset($_GET['post'])) {
+			$activity_id = $_GET['post'];
 
 			$object['content'] = $this->getActivity($activity_id);
 			$object['person'] = $this->getPerson($this->SETTINGS_GOOGLE_ID);
@@ -183,11 +194,12 @@ class Plusify {
 
 		$result = curl_exec($ch);
 		$result = json_decode($result, true);
-		
-		//echo "<pre>";
-		//print_r($result);
-		//echo "</pre>";
-		//flush();
+		/*
+		echo "<pre>";
+		print_r($result);
+		echo "</pre>";
+		flush();
+		*/
 		if(isset($result['error'])) {
 			return false;
 		}
@@ -196,17 +208,32 @@ class Plusify {
 		}
 	}
 
-	function doMultiRequest($url, $max_results=20) {
+	function doMultiRequest($url, $max_results=30) {
 		$result = $this->doRequest($url);
+		$oldnexttoken = "";
 		for($i=count($result['items']); $i <= $max_results; $i+count($result['items'])) {
-			$sub_request = $this->doRequest($result['nextLink'], true);
-			if(isset($sub_request['items']) && count($sub_request['items']) > 0) {
-				array_push($result['items'], $sub_request['items']);
+			if($oldnexttoken != $result['nextPageToken']) {
+				$sub_request = $this->doRequest($result['nextLink'], true);
+				$oldnexttoken = $result['nextPageToken'];
+				if(isset($sub_request['items']) && count($sub_request['items']) > 0) {
+					foreach($sub_request['items'] as $subitem) {
+						$result['items'][] = $subitem;
+					}
+				}
+				else {
+					break 1;
+				}
 			}
 			else {
 				break 1;
 			}
 		}
+		/*
+		echo "<pre>";
+		print_r($result);
+		echo "</pre>";
+		flush();
+		*/
 		return $result;
 	}
 
@@ -246,6 +273,7 @@ class Plusify {
 
 	function getRawActivityList($person_id) {
 		return $this->doMultiRequest("{$this->SETTINGS_API_URL}/people/{$person_id}/activities/public");	
+		//return $this->doRequest("{$this->SETTINGS_API_URL}/people/{$person_id}/activities/public");	
 	}
 
 	function getRawActivity($id) {
@@ -341,7 +369,7 @@ class Plusify {
 			}
 		}
 
-		$query = "SELECT * FROM activity NOT NULL ORDER BY timestamp DESC LIMIT 100;";
+		$query = "SELECT * FROM activity ORDER BY timestamp DESC LIMIT 100;";
 		$query_result = $this->db->query("{$query}");
 		$object = $query_result->fetchAll(SQLITE_ASSOC);
 		$object = $object;
@@ -416,6 +444,8 @@ class Plusify {
 		$object['url'] = $this->getOrNone($person, 'url');
 		if(isset($person['image'])) {
 			$object['image'] = $this->getOrNone($person['image'], 'url');
+			$object['image'] = explode("?sz=50", $object['image']);
+			$object['image'] = $object['image'][0];
 		}
 		return $object;
 	}
@@ -445,14 +475,8 @@ class Plusify {
 
 	function extractActivity($activity) {
 		$object['id'] = $activity['id'];
-		if($this->SETTINGS_CLEAN_URLS) {
-			$object['local_url'] = "{$this->SETTINGS_ROOT_URL}activity/{$activity['id']}/";
-		}
-		else {
-			$object['local_url'] = "{$this->SETTINGS_ROOT_URL}?activity={$activity['id']}";	
-		}
 		$object['url'] = $activity['url'];
-		$object['timestamp'] = strftime("%m/%d/%y %I:%M %p", strtotime($activity['published']));
+		$object['timestamp'] = strftime("%Y/%m/%d %I:%M %p", strtotime($activity['published']));
 		$object['author'] = $activity['actor']['displayName'];
 		$object['author_id'] = $activity['actor']['id'];
 		$object['author_image'] = $activity['actor']['image']['url'];
@@ -460,7 +484,34 @@ class Plusify {
 		$object['comments'] = $activity['object']['replies']['totalItems'];
 		$object['plus_ones'] = $activity['object']['plusoners']['totalItems'];
 		$object['content'] = $activity['object']['content'];
-		$object['title'] = $activity['title'];
+		$title = explode("<br", $object['content']);
+		$title = strip_tags(trim($title[0]));
+		$title = preg_replace_callback("/(&#[0-9]+;)/", function($m) { return mb_convert_encoding($m[1], "UTF-8", "HTML-ENTITIES"); }, $title); 
+		$titlefound = strpos($activity['title'], $title);
+		$object['title'] = $title;
+		if($titlefound !== false) {
+			$object['title'] = $title;
+			$object['content'] = str_replace($object['title'], "", $object['content']);
+			$object['content'] = str_replace("<b></b>", "", $object['content']);
+			$object['content'] = preg_replace('@^(<br\\b[^>]*/?>)+@i', '', $object['content']);
+		}
+		else {
+			$object['title'] = $activity['title'];
+		}
+
+		$object['slug'] = strtolower(trim($object['title']));
+		$object['slug'] = preg_replace('/ /', '-', $object['slug']);
+		$object['slug'] = preg_replace('/[^a-z0-9-]/', '', $object['slug']);
+		$object['slug'] = preg_replace('/-+/', "-", $object['slug']);
+
+		if($this->SETTINGS_CLEAN_URLS) {
+			$object['local_url'] = "{$this->SETTINGS_ROOT_URL}post/{$object['id']}/{$object['slug']}/";
+		}
+		else {
+
+			$object['local_url'] = "{$this->SETTINGS_ROOT_URL}?post={$object['id']}&slug={$object['slug']}";	
+		}
+
 		if(isset($object['annotation'])) {
 			$object['annotation'] = $activity['annotation'];
 		}
@@ -472,13 +523,14 @@ class Plusify {
 			$author = explode($first_word, $author[1]);
 			$author = $author[0];
 			$object['reshared_author'] = trim($author);
-			$title_split =  explode($first_word, $activity['title']);
-			$object['title'] = "{$first_word} {$title_split[1]}";
+			//$title_split =  explode($first_word, $activity['title']);
+			//$object['title'] = "{$first_word} {$title_split[1]}";
 			$object['reshared_author'] = trim($author);
 			$object['reshared_author_url'] = $activity['object']['actor']['url'];
 			if(isset($activity['object']['actor']['image'])) {
 				$object['reshared_author_image'] = $activity['object']['actor']['image']['url'];
 			}
+			$object['content'] = "{$activity['annotation']}<br><br>-----<br><br>{$object['content']}";
 		}
 		if(isset($activity['object']['attachments'])) {
 			foreach($activity['object']['attachments'] as $attachment) {
